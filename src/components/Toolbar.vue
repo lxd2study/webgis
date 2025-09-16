@@ -1,39 +1,119 @@
 <template>
   <div class="toolbar">
-    <!-- 底图切换 -->
-    <div class="toolbar-item">
-      <label>底图：</label>
-      <select v-model="selectedImageryName" @change="changeImageryProvider">
-        <option v-for="provider in imageryProviders" :key="provider.name" :value="provider.name">
-          {{ provider.name }}
-        </option>
-      </select>
+    <div class="toolbar-group">
+      <div class="toolbar-item">
+        <label>底图：</label>
+        <select v-model="selectedImageryName" @change="changeImageryProvider">
+          <option v-for="provider in imageryProviders" :key="provider.name" :value="provider.name">
+            {{ provider.name }}
+          </option>
+        </select>
+      </div>
     </div>
-
-    <!-- 复位按钮 -->
-    <div class="toolbar-item">
-      <button @click="resetView">复位</button>
+    <div class="toolbar-divider"></div>
+    <div class="toolbar-group">
+      <div class="toolbar-item">
+        <button class="primary" @click="resetView">复位</button>
+      </div>
     </div>
-
-    <!-- 视角书签 -->
-    <div class="toolbar-item">
-      <button @click="saveBookmark">保存书签</button>
-      <select v-model="selectedBookmarkIndex" @change="flyToBookmark">
-        <option v-for="(bookmark, index) in bookmarks" :key="index" :value="index">
-          {{ bookmark.name }}
-        </option>
-      </select>
+    <div class="toolbar-divider"></div>
+    <div class="toolbar-group">
+      <div class="toolbar-item">
+        <button @click="saveBookmark">保存书签</button>
+        <select v-model="selectedBookmarkIndex" @change="flyToBookmark" class="bookmark-select">
+          <option v-for="(bookmark, index) in bookmarks" :key="index" :value="index">
+            {{ bookmark.name }}
+          </option>
+        </select>
+      </div>
     </div>
-
-    <!-- 日照模拟 -->
-    <div class="toolbar-item">
-      <label>日照模拟：</label>
-      <input type="checkbox" v-model="enableLighting" @change="toggleLighting" />
-      <input type="range" min="0" max="24" step="0.1" v-model="currentHour" @input="updateSunLight" />
-      <span>{{ currentHour }} 时</span>
+    <div class="toolbar-divider"></div>
+    <div class="toolbar-group">
+      <div class="toolbar-item">
+        <label>日照模拟：</label>
+        <input type="checkbox" v-model="enableLighting" @change="toggleLighting" />
+        <input type="range" min="0" max="24" step="0.1" v-model="currentHour" @input="updateSunLight" />
+        <span>{{ currentHour }} 时</span>
+      </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.toolbar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1000;
+  background: rgba(42, 42, 42, 0.85);
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  backdrop-filter: blur(4px);
+  min-width: 320px;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar-divider {
+  width: 2px;
+  height: 32px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  margin: 0 8px;
+}
+
+.toolbar-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+}
+
+button,
+select {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 5px;
+  background: #2c3e50;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 15px;
+}
+
+button.primary {
+  background: #3498db;
+}
+
+button:hover,
+select:hover {
+  background: #34495e;
+}
+
+.bookmark-select {
+  min-width: 120px;
+  max-width: 180px;
+}
+
+label {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+input[type="range"] {
+  accent-color: #3498db;
+  width: 100px;
+}
+</style>
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
@@ -102,7 +182,19 @@ const changeImageryProvider = () => {
 
 const resetView = () => {
   const viewer = getViewer();
-  if (viewer) {
+  // 如果有选中的书签，则飞到书签位置
+  if (
+    viewer &&
+    selectedBookmarkIndex.value >= 0 &&
+    bookmarks.value[selectedBookmarkIndex.value]
+  ) {
+    const bookmark = bookmarks.value[selectedBookmarkIndex.value];
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.clone(bookmark.position),
+      orientation: bookmark.orientation,
+    });
+  } else if (viewer) {
+    // 否则回到默认视角
     viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(116.39, 39.9, 10000),
       orientation: { heading: 0, pitch: -Cesium.Math.PI_OVER_TWO, roll: 0 },
@@ -158,44 +250,3 @@ const updateSunLight = () => {
 
 onMounted(initImageryProviders);
 </script>
-
-<style scoped>
-.toolbar {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 1000;
-  background: rgba(42, 42, 42, 0.8);
-  padding: 10px;
-  border-radius: 5px;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.toolbar-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: white;
-}
-
-button,
-select {
-  padding: 5px 10px;
-  border: none;
-  border-radius: 3px;
-  background: #2c3e50;
-  color: white;
-  cursor: pointer;
-}
-
-button:hover,
-select:hover {
-  background: #34495e;
-}
-
-label {
-  font-size: 14px;
-}
-</style>
