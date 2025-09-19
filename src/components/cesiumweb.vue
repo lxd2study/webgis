@@ -17,7 +17,6 @@ Cesium.Ion.defaultAccessToken =
 
 onMounted(() => {
   const viewer = new Cesium.Viewer("cesium-container", {
-    terrain: Cesium.Terrain.fromWorldTerrain(), // 开启全球地形
     //关闭部分默认UI
     animation: false, // 关闭动画控制
     timeline: false, // 关闭时间线
@@ -34,15 +33,22 @@ onMounted(() => {
   viewer.scene.debugShowFramesPerSecond = true; // 顺带显示 FPS
   //全局变量viewer，方便其他组件调用
   window.viewer = viewer;
-  // 飞到一个初始位置，比如北京
-  viewer.camera.flyTo({
-    destination: Cesium.Cartesian3.fromDegrees(116.39, 39.9, 10000),
-    orientation: {
-      heading: 0,
-      pitch: -Cesium.Math.PI_OVER_TWO,
-      roll: 0,
-    },
+  //加载天地图
+  const tdtImg = new Cesium.WebMapTileServiceImageryProvider({
+    // 服务URL地址，使用天地图提供的WMTS服务
+    url: `https://t0.tianditu.gov.cn/img_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=img&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=ac919d63816e20e2179ef656191edacd`,
+    // 图层名称
+    layer: "tdtImgLayer",
+    // 图层样式
+    style: "default",
+    // 图片格式
+    format: "image/jpeg",
+    // 瓦片矩阵集ID，使用Google Maps兼容的坐标系
+    tileMatrixSetID: "GoogleMapsCompatible",
+    // 最大缩放级别
+    maximumLevel: 18,
   });
+  viewer.imageryLayers.addImageryProvider(tdtImg);
 });
 </script>
 
